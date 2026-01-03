@@ -231,12 +231,13 @@
         }
 
         // Category budgets (monthly unless noted)
+        // Maps display name -> { budget, aliases (actual YNAB category names) }
         const MONTHLY_CATEGORIES = {
-            'Dining Out': 1200,
-            'Gifts': 500,
-            'Groceries': 1200,
-            'Clothing': 600,
-            'Fun Money': 110
+            'Dining Out': { budget: 1200, aliases: ['Dining Out'] },
+            'Gifts': { budget: 500, aliases: ['Gifts', '🎁 Gifts'] },
+            'Groceries': { budget: 1200, aliases: ['Groceries', '🍎 Groceries'] },
+            'Clothing': { budget: 600, aliases: ['Clothing'] },
+            'Fun Money': { budget: 110, aliases: ['Fun Money'] }
         };
 
         const YEARLY_CATEGORIES = {
@@ -410,43 +411,20 @@
                     }
                 }
 
-                // Helper to find spending by flexible name match
-                function findSpending(targetName) {
-                    const lowerTarget = targetName.toLowerCase();
-
-                    // First try exact match on original name
-                    if (spendingMap[targetName] !== undefined) {
-                        return spendingMap[targetName];
-                    }
-
-                    // Priority 1: Stripped name exactly equals target (e.g., "🍎 Groceries" -> "groceries")
-                    for (const [name, amount] of Object.entries(spendingMap)) {
-                        const strippedName = name.replace(/[^a-zA-Z]/gu, '').trim().toLowerCase();
-                        if (strippedName === lowerTarget) {
-                            console.log(`Matched "${targetName}" to "${name}" [exact] (amount: ${amount})`);
-                            return amount;
+                // Find spending using aliases
+                function findSpending(aliases) {
+                    for (const alias of aliases) {
+                        if (spendingMap[alias] !== undefined && spendingMap[alias] > 0) {
+                            console.log(`Found "${alias}" with amount: ${spendingMap[alias]}`);
+                            return spendingMap[alias];
                         }
                     }
-
-                    // Priority 2: Stripped name ends with " target" (word boundary)
-                    for (const [name, amount] of Object.entries(spendingMap)) {
-                        const strippedName = name.replace(/[^a-zA-Z\s]/gu, '').trim().toLowerCase();
-                        if (strippedName.endsWith(' ' + lowerTarget)) {
-                            console.log(`Matched "${targetName}" to "${name}" [ends with] (amount: ${amount})`);
-                            return amount;
+                    // If no match with amount > 0, try again allowing 0
+                    for (const alias of aliases) {
+                        if (spendingMap[alias] !== undefined) {
+                            return spendingMap[alias];
                         }
                     }
-
-                    // Priority 3: Substring match (fallback)
-                    for (const [name, amount] of Object.entries(spendingMap)) {
-                        const strippedName = name.replace(/[^a-zA-Z\s]/gu, '').trim().toLowerCase();
-                        if (strippedName.includes(lowerTarget)) {
-                            console.log(`Matched "${targetName}" to "${name}" [substring] (amount: ${amount})`);
-                            return amount;
-                        }
-                    }
-
-                    console.log(`No match found for "${targetName}". Available:`, Object.keys(spendingMap));
                     return 0;
                 }
 
@@ -460,9 +438,9 @@
                 let html = '<div class="section">';
                 html += '<h2 class="section-title">Monthly Categories</h2>';
 
-                for (const [name, budget] of Object.entries(MONTHLY_CATEGORIES)) {
-                    const spent = findSpending(name);
-                    html += createCategoryCard(name, spent, budget);
+                for (const [name, config] of Object.entries(MONTHLY_CATEGORIES)) {
+                    const spent = findSpending(config.aliases);
+                    html += createCategoryCard(name, spent, config.budget);
                 }
 
                 html += '</div>';
