@@ -411,11 +411,19 @@
                     if (spendingMap[targetName] !== undefined) {
                         return spendingMap[targetName];
                     }
-                    // Then try case-insensitive contains match
+                    // Then try case-insensitive contains match (handles emojis, prefixes, etc.)
                     const lowerTarget = targetName.toLowerCase();
                     for (const [name, amount] of Object.entries(spendingMap)) {
-                        if (name.toLowerCase().includes(lowerTarget) ||
-                            lowerTarget.includes(name.toLowerCase())) {
+                        const lowerName = name.toLowerCase();
+                        // Check if target is in name or name ends with target (for emoji prefixes)
+                        if (lowerName.includes(lowerTarget) ||
+                            lowerName.endsWith(lowerTarget) ||
+                            lowerTarget.includes(lowerName)) {
+                            return amount;
+                        }
+                        // Also try stripping emojis and special chars
+                        const stripped = name.replace(/[^\w\s]/g, '').trim().toLowerCase();
+                        if (stripped.includes(lowerTarget) || lowerTarget.includes(stripped)) {
                             return amount;
                         }
                     }
