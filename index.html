@@ -188,7 +188,36 @@
     </style>
 </head>
 <body>
-    <div class="container">
+    <div id="auth-gate" style="display:none; position:fixed; inset:0; background:#1a1a2e; z-index:9999; display:flex; align-items:center; justify-content:center;">
+        <div style="text-align:center;">
+            <h2 style="color:#fff; margin-bottom:20px;">Enter Password</h2>
+            <input type="password" id="password-input" style="padding:12px 16px; font-size:16px; border-radius:8px; border:none; width:200px;" placeholder="Password" autofocus>
+            <button onclick="checkPassword()" style="margin-left:10px; padding:12px 20px; font-size:16px; border-radius:8px; border:none; background:#4ade80; cursor:pointer;">Enter</button>
+            <p id="auth-error" style="color:#ef4444; margin-top:15px; display:none;">Incorrect password</p>
+        </div>
+    </div>
+    <script>
+        function checkPassword() {
+            const input = document.getElementById('password-input').value;
+            if (input === 'REDACTED') {
+                localStorage.setItem('spending_auth', 'true');
+                document.getElementById('auth-gate').style.display = 'none';
+                document.getElementById('main-content').style.display = 'block';
+            } else {
+                document.getElementById('auth-error').style.display = 'block';
+            }
+        }
+        document.getElementById('password-input')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') checkPassword();
+        });
+        if (localStorage.getItem('spending_auth') === 'true') {
+            document.getElementById('auth-gate').style.display = 'none';
+        } else {
+            document.getElementById('auth-gate').style.display = 'flex';
+            document.getElementById('main-content').style.display = 'none';
+        }
+    </script>
+    <div id="main-content" class="container">
         <h1>Spending Tracker</h1>
 
         <div class="month-nav">
