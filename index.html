@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spending Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+
+        .month-nav {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .month-nav button {
+            background: #16213e;
+            border: none;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.2s;
+        }
+
+        .month-nav button:hover {
+            background: #1f4068;
+        }
+
+        .month-nav button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .current-month {
+            font-size: 20px;
+            font-weight: 600;
+            min-width: 200px;
+            text-align: center;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            color: #888;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .category {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .category-name {
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        .category-amounts {
+            text-align: right;
+        }
+
+        .spent {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .budget {
+            font-size: 14px;
+            color: #888;
+        }
+
+        .progress-bar {
+            height: 24px;
+            background: #0f0f23;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 12px;
+            transition: width 0.5s ease, background-color 0.3s ease;
+            background: linear-gradient(90deg, #4ade80, #22c55e);
+        }
+
+        .progress-fill.warning {
+            background: linear-gradient(90deg, #fbbf24, #f59e0b);
+        }
+
+        .progress-fill.over {
+            background: linear-gradient(90deg, #f87171, #ef4444);
+        }
+
+        .percentage {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 12px;
+            font-weight: 600;
+            color: #fff;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+
+        .remaining {
+            margin-top: 8px;
+            font-size: 14px;
+            color: #888;
+        }
+
+        .remaining.over {
+            color: #ef4444;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: #888;
+        }
+
+        .error {
+            background: #3b1219;
+            border: 1px solid #ef4444;
+            color: #fca5a5;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Spending Tracker</h1>
+
+        <div class="month-nav">
+            <button id="prevMonth">&larr; Previous</button>
+            <span class="current-month" id="currentMonth">Loading...</span>
+            <button id="nextMonth">Next &rarr;</button>
+        </div>
+
+        <div id="content">
+            <div class="loading">Loading your spending data...</div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://api.ynab.com/v1';
+
+        // Get token from localStorage or prompt user
+        function getToken() {
+            let token = localStorage.getItem('ynab_token');
+            if (!token) {
+                token = prompt('Enter your YNAB Personal Access Token:');
+                if (token) {
+                    localStorage.setItem('ynab_token', token);
+                }
+            }
+            return token;
+        }
+
+        const API_TOKEN = getToken();
+
+        // Category budgets (monthly unless noted)
+        const MONTHLY_CATEGORIES = {
+            'Dining Out': 1200,
+            'Gifts': 500,
+            'Groceries': 1200,
+            'Clothing': 600,
+            'Fun Money': 110
+        };
+
+        const YEARLY_CATEGORIES = {
+            'Travel': 24000,
+            'Vacation': 24000  // Combined with Travel
+        };
+
+        // Track the currently displayed month
+        let currentDate = new Date();
+        let budgetId = null;
+
+        // Format currency
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(amount);
+        }
+
+        // Format month for display
+        function formatMonth(date) {
+            return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        }
+
+        // Format month for API (YYYY-MM-01)
+        function formatMonthForAPI(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            return `${year}-${month}-01`;
+        }
+
+        // API fetch helper
+        async function apiFetch(endpoint) {
+            const response = await fetch(`${API_BASE}${endpoint}`, {
+                headers: {
+                    'Authorization': `Bearer ${API_TOKEN}`
+                }
+            });
+            if (!response.ok) {
+                throw new Error(`API error: ${response.status}`);
+            }
+            return response.json();
+        }
+
+        // Get the default budget
+        async function getBudgetId() {
+            if (budgetId) return budgetId;
+            const data = await apiFetch('/budgets');
+            budgetId = data.data.budgets[0].id;
+            return budgetId;
+        }
+
+        // Get categories for a specific month
+        async function getCategoriesForMonth(date) {
+            const id = await getBudgetId();
+            const monthStr = formatMonthForAPI(date);
+            const data = await apiFetch(`/budgets/${id}/months/${monthStr}`);
+            return data.data.month.categories;
+        }
+
+        // Get year-to-date spending for yearly categories
+        async function getYearlySpending(year) {
+            const id = await getBudgetId();
+            const categories = await apiFetch(`/budgets/${id}/categories`);
+
+            // Get all transactions for the year
+            const startDate = `${year}-01-01`;
+            const data = await apiFetch(`/budgets/${id}/transactions?since_date=${startDate}`);
+
+            // Find Travel and Vacation category IDs
+            let travelId = null;
+            let vacationId = null;
+
+            for (const group of categories.data.category_groups) {
+                for (const cat of group.categories) {
+                    if (cat.name === 'Travel') travelId = cat.id;
+                    if (cat.name === 'Vacation') vacationId = cat.id;
+                }
+            }
+
+            // Sum up spending for Travel and Vacation
+            let totalSpent = 0;
+            for (const transaction of data.data.transactions) {
+                if (transaction.category_id === travelId || transaction.category_id === vacationId) {
+                    // YNAB amounts are in milliunits (1000 = $1)
+                    // Negative amounts are spending
+                    if (transaction.amount < 0) {
+                        totalSpent += Math.abs(transaction.amount);
+                    }
+                }
+            }
+
+            return totalSpent / 1000; // Convert from milliunits
+        }
+
+        // Create a category card
+        function createCategoryCard(name, spent, budget, isYearly = false) {
+            const percentage = (spent / budget) * 100;
+            const remaining = budget - spent;
+            const isOver = spent > budget;
+            const isWarning = percentage >= 80 && percentage < 100;
+
+            let fillClass = '';
+            if (isOver) fillClass = 'over';
+            else if (isWarning) fillClass = 'warning';
+
+            const periodLabel = isYearly ? '/year' : '/month';
+
+            return `
+                <div class="category">
+                    <div class="category-header">
+                        <span class="category-name">${name}</span>
+                        <div class="category-amounts">
+                            <div class="spent">${formatCurrency(spent)}</div>
+                            <div class="budget">of ${formatCurrency(budget)}${periodLabel}</div>
+                        </div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill ${fillClass}" style="width: ${Math.min(percentage, 100)}%"></div>
+                        <span class="percentage">${percentage.toFixed(0)}%</span>
+                    </div>
+                    <div class="remaining ${isOver ? 'over' : ''}">
+                        ${isOver
+                            ? `Over budget by ${formatCurrency(Math.abs(remaining))}`
+                            : `${formatCurrency(remaining)} remaining`}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Update navigation buttons
+        function updateNavButtons() {
+            const now = new Date();
+            const minDate = new Date(2025, 0, 1); // January 2025
+
+            document.getElementById('prevMonth').disabled =
+                currentDate.getFullYear() === minDate.getFullYear() &&
+                currentDate.getMonth() === minDate.getMonth();
+
+            document.getElementById('nextMonth').disabled =
+                currentDate.getFullYear() === now.getFullYear() &&
+                currentDate.getMonth() === now.getMonth();
+
+            document.getElementById('currentMonth').textContent = formatMonth(currentDate);
+        }
+
+        // Load and display data
+        async function loadData() {
+            const content = document.getElementById('content');
+            content.innerHTML = '<div class="loading">Loading your spending data...</div>';
+            updateNavButtons();
+
+            try {
+                // Get monthly category data
+                const categories = await getCategoriesForMonth(currentDate);
+
+                // Build category spending map (YNAB uses milliunits)
+                const spendingMap = {};
+                for (const cat of categories) {
+                    // Activity is negative for spending, so we take absolute value
+                    spendingMap[cat.name] = Math.abs(cat.activity) / 1000;
+                }
+
+                // Get yearly spending for Travel/Vacation
+                const yearlySpent = await getYearlySpending(currentDate.getFullYear());
+
+                // Build HTML
+                let html = '<div class="section">';
+                html += '<h2 class="section-title">Monthly Categories</h2>';
+
+                for (const [name, budget] of Object.entries(MONTHLY_CATEGORIES)) {
+                    const spent = spendingMap[name] || 0;
+                    html += createCategoryCard(name, spent, budget);
+                }
+
+                html += '</div>';
+
+                html += '<div class="section">';
+                html += `<h2 class="section-title">Yearly Categories (${currentDate.getFullYear()})</h2>`;
+                html += createCategoryCard('Travel + Vacation', yearlySpent, 24000, true);
+                html += '</div>';
+
+                content.innerHTML = html;
+            } catch (error) {
+                console.error('Error loading data:', error);
+                content.innerHTML = `
+                    <div class="error">
+                        <strong>Error loading data:</strong><br>
+                        ${error.message}<br><br>
+                        Please check your YNAB API token and try again.
+                    </div>
+                `;
+            }
+        }
+
+        // Navigation handlers
+        document.getElementById('prevMonth').addEventListener('click', () => {
+            currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+            loadData();
+        });
+
+        document.getElementById('nextMonth').addEventListener('click', () => {
+            currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
+            loadData();
+        });
+
+        // Initial load
+        loadData();
+    </script>
+</body>
+</html>
