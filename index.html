@@ -405,6 +405,26 @@
                     spendingMap[cat.name] = Math.abs(cat.activity) / 1000;
                 }
 
+                // Helper to find spending by flexible name match
+                function findSpending(targetName) {
+                    // First try exact match
+                    if (spendingMap[targetName] !== undefined) {
+                        return spendingMap[targetName];
+                    }
+                    // Then try case-insensitive contains match
+                    const lowerTarget = targetName.toLowerCase();
+                    for (const [name, amount] of Object.entries(spendingMap)) {
+                        if (name.toLowerCase().includes(lowerTarget) ||
+                            lowerTarget.includes(name.toLowerCase())) {
+                            return amount;
+                        }
+                    }
+                    return 0;
+                }
+
+                // Log available categories for debugging
+                console.log('Available YNAB categories:', Object.keys(spendingMap));
+
                 // Get yearly spending for Travel/Vacation
                 const yearlySpent = await getYearlySpending(currentDate.getFullYear());
 
@@ -413,7 +433,7 @@
                 html += '<h2 class="section-title">Monthly Categories</h2>';
 
                 for (const [name, budget] of Object.entries(MONTHLY_CATEGORIES)) {
-                    const spent = spendingMap[name] || 0;
+                    const spent = findSpending(name);
                     html += createCategoryCard(name, spent, budget);
                 }
 
