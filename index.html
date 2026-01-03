@@ -402,7 +402,12 @@
                 const spendingMap = {};
                 for (const cat of categories) {
                     // Activity is negative for spending, so we take absolute value
-                    spendingMap[cat.name] = Math.abs(cat.activity) / 1000;
+                    const amount = Math.abs(cat.activity) / 1000;
+                    spendingMap[cat.name] = amount;
+                    // Log categories with "grocer" or "gift" in the name for debugging
+                    if (cat.name.toLowerCase().includes('grocer') || cat.name.toLowerCase().includes('gift')) {
+                        console.log(`Category: "${cat.name}", activity: ${cat.activity}, amount: ${amount}`, cat);
+                    }
                 }
 
                 // Helper to find spending by flexible name match
