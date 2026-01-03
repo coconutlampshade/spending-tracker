@@ -414,25 +414,34 @@
                 function findSpending(targetName) {
                     const lowerTarget = targetName.toLowerCase();
 
-                    // First try exact match
+                    // First try exact match on original name
                     if (spendingMap[targetName] !== undefined) {
                         return spendingMap[targetName];
                     }
 
-                    // Priority 1: Category ends with target (e.g., "🍎 Groceries" ends with "Groceries")
+                    // Priority 1: Stripped name exactly equals target (e.g., "🍎 Groceries" -> "groceries")
                     for (const [name, amount] of Object.entries(spendingMap)) {
-                        const strippedName = name.replace(/[^a-zA-Z\s]/gu, '').trim().toLowerCase();
-                        if (strippedName === lowerTarget || strippedName.endsWith(lowerTarget)) {
-                            console.log(`Matched "${targetName}" to "${name}" (amount: ${amount})`);
+                        const strippedName = name.replace(/[^a-zA-Z]/gu, '').trim().toLowerCase();
+                        if (strippedName === lowerTarget) {
+                            console.log(`Matched "${targetName}" to "${name}" [exact] (amount: ${amount})`);
                             return amount;
                         }
                     }
 
-                    // Priority 2: Substring match (fallback)
+                    // Priority 2: Stripped name ends with " target" (word boundary)
+                    for (const [name, amount] of Object.entries(spendingMap)) {
+                        const strippedName = name.replace(/[^a-zA-Z\s]/gu, '').trim().toLowerCase();
+                        if (strippedName.endsWith(' ' + lowerTarget)) {
+                            console.log(`Matched "${targetName}" to "${name}" [ends with] (amount: ${amount})`);
+                            return amount;
+                        }
+                    }
+
+                    // Priority 3: Substring match (fallback)
                     for (const [name, amount] of Object.entries(spendingMap)) {
                         const strippedName = name.replace(/[^a-zA-Z\s]/gu, '').trim().toLowerCase();
                         if (strippedName.includes(lowerTarget)) {
-                            console.log(`Matched "${targetName}" to "${name}" via substring (amount: ${amount})`);
+                            console.log(`Matched "${targetName}" to "${name}" [substring] (amount: ${amount})`);
                             return amount;
                         }
                     }
