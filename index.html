@@ -283,12 +283,9 @@
             return response.json();
         }
 
-        // Get the default budget
+        // Use YNAB's "last-used" budget shortcut
         async function getBudgetId() {
-            if (budgetId) return budgetId;
-            const data = await apiFetch('/budgets');
-            budgetId = data.data.budgets[0].id;
-            return budgetId;
+            return 'last-used';
         }
 
         // Check if date is current month
