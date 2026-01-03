@@ -168,6 +168,23 @@
             border-radius: 12px;
             margin-bottom: 20px;
         }
+
+        .reset-token {
+            display: block;
+            margin: 20px auto;
+            background: transparent;
+            border: 1px solid #666;
+            color: #888;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .reset-token:hover {
+            border-color: #888;
+            color: #aaa;
+        }
     </style>
 </head>
 <body>
@@ -183,6 +200,8 @@
         <div id="content">
             <div class="loading">Loading your spending data...</div>
         </div>
+
+        <button class="reset-token" onclick="resetToken()">Reset API Token</button>
     </div>
 
     <script>
@@ -200,7 +219,16 @@
             return token;
         }
 
-        const API_TOKEN = getToken();
+        let API_TOKEN = getToken();
+
+        function resetToken() {
+            localStorage.removeItem('ynab_token');
+            API_TOKEN = getToken();
+            if (API_TOKEN) {
+                budgetId = null;
+                loadData();
+            }
+        }
 
         // Category budgets (monthly unless noted)
         const MONTHLY_CATEGORIES = {
@@ -263,10 +291,16 @@
             return budgetId;
         }
 
+        // Check if date is current month
+        function isCurrentMonth(date) {
+            const now = new Date();
+            return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
+        }
+
         // Get categories for a specific month
         async function getCategoriesForMonth(date) {
             const id = await getBudgetId();
-            const monthStr = formatMonthForAPI(date);
+            const monthStr = isCurrentMonth(date) ? 'current' : formatMonthForAPI(date);
             const data = await apiFetch(`/budgets/${id}/months/${monthStr}`);
             return data.data.month.categories;
         }
@@ -396,11 +430,19 @@
                 content.innerHTML = html;
             } catch (error) {
                 console.error('Error loading data:', error);
+                let hint = '';
+                if (error.message.includes('401')) {
+                    hint = 'Your API token appears to be invalid. Click "Reset API Token" below to enter a new one.';
+                } else if (error.message.includes('404')) {
+                    hint = 'This month may not exist in your YNAB budget yet. Try navigating to a previous month.';
+                } else {
+                    hint = 'Please check your YNAB API token and try again.';
+                }
                 content.innerHTML = `
                     <div class="error">
                         <strong>Error loading data:</strong><br>
                         ${error.message}<br><br>
-                        Please check your YNAB API token and try again.
+                        ${hint}
                     </div>
                 `;
             }
