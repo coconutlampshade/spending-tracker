@@ -123,7 +123,7 @@
             color: #888;
         }
 
-        .reset-btn {
+        .logout-btn {
             font-size: 12px;
             font-family: inherit;
             color: #999;
@@ -132,7 +132,7 @@
             cursor: pointer;
         }
 
-        .reset-btn:hover {
+        .logout-btn:hover {
             color: #666;
         }
 
@@ -328,7 +328,7 @@
     <div class="app" id="app">
         <header class="header">
             <div class="title">Spending</div>
-            <button class="reset-btn" id="reset-token">Reset Token</button>
+            <button class="logout-btn" id="logout">Log out</button>
         </header>
 
         <nav class="nav">
@@ -354,8 +354,11 @@
     </div>
 
     <script>
+        // Encrypted API token (encrypted with password)
+        // Salt and IV are prepended to ciphertext, all base64 encoded
+        const ENCRYPTED_TOKEN = 'eyJzYWx0IjoiYjZjMjdlNGZjNWE2OTJmZiIsIml2IjoiYjgwYzk1YjViN2RhZTIyZCIsImRhdGEiOiJlNGRjZjY3MTJmYTVmYzdkZjJjMWY4ZjYwNDhmOGM0NGExMGFjNWM4MmViYzk1MWVhOGVhMjI0OTU2YmExODE2ZTU1N2M1MDM0YmRmNmVhYjBiZmFlNTU0NGZjNjE5MWEyZDQxYjM5MGFlNWUyNmNiM2ZmY2VmIn0=';
+
         const API_BASE = 'https://api.ynab.com/v1';
-        const PASSWORD = 'REDACTED';
 
         const CATEGORIES = {
             'Dining Out': { budget: 1200, aliases: ['Dining Out'] },
@@ -369,6 +372,53 @@
         let currentDate = new Date();
         let API_TOKEN = null;
 
+        // Crypto utilities
+        async function deriveKey(password, salt) {
+            const encoder = new TextEncoder();
+            const keyMaterial = await crypto.subtle.importKey(
+                'raw',
+                encoder.encode(password),
+                'PBKDF2',
+                false,
+                ['deriveKey']
+            );
+            return crypto.subtle.deriveKey(
+                {
+                    name: 'PBKDF2',
+                    salt: hexToBytes(salt),
+                    iterations: 100000,
+                    hash: 'SHA-256'
+                },
+                keyMaterial,
+                { name: 'AES-GCM', length: 256 },
+                false,
+                ['decrypt']
+            );
+        }
+
+        function hexToBytes(hex) {
+            const bytes = new Uint8Array(hex.length / 2);
+            for (let i = 0; i < hex.length; i += 2) {
+                bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
+            }
+            return bytes;
+        }
+
+        async function decryptToken(password) {
+            try {
+                const { salt, iv, data } = JSON.parse(atob(ENCRYPTED_TOKEN));
+                const key = await deriveKey(password, salt);
+                const decrypted = await crypto.subtle.decrypt(
+                    { name: 'AES-GCM', iv: hexToBytes(iv) },
+                    key,
+                    hexToBytes(data)
+                );
+                return new TextDecoder().decode(decrypted);
+            } catch {
+                return null;
+            }
+        }
+
         // Utilities
         const formatCurrency = (n) => '$' + Math.round(n).toLocaleString();
         const formatMonth = (d) => d.toLocaleDateString('en-US', { month: 'long' });
@@ -380,25 +430,27 @@
         };
 
         // Auth
-        function checkAuth() {
-            if (localStorage.getItem('spending_auth') === 'true') showApp();
+        async function checkAuth() {
+            const stored = sessionStorage.getItem('spending_token');
+            if (stored) {
+                API_TOKEN = stored;
+                showApp();
+            }
         }
 
         function showApp() {
             document.getElementById('auth').classList.add('hidden');
             document.getElementById('app').classList.add('visible');
-            API_TOKEN = localStorage.getItem('ynab_token');
-            if (!API_TOKEN) {
-                API_TOKEN = prompt('Enter YNAB API Token:');
-                if (API_TOKEN) localStorage.setItem('ynab_token', API_TOKEN);
-            }
-            if (API_TOKEN) loadData();
+            loadData();
         }
 
-        document.getElementById('auth-submit').addEventListener('click', () => {
+        document.getElementById('auth-submit').addEventListener('click', async () => {
             const pw = document.getElementById('password').value;
-            if (pw === PASSWORD) {
-                localStorage.setItem('spending_auth', 'true');
+            const token = await decryptToken(pw);
+
+            if (token) {
+                API_TOKEN = token;
+                sessionStorage.setItem('spending_token', token);
                 showApp();
             } else {
                 document.getElementById('auth-error').classList.add('visible');
@@ -408,6 +460,15 @@
 
         document.getElementById('password').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') document.getElementById('auth-submit').click();
+        });
+
+        document.getElementById('logout').addEventListener('click', () => {
+            sessionStorage.removeItem('spending_token');
+            API_TOKEN = null;
+            document.getElementById('app').classList.remove('visible');
+            document.getElementById('auth').classList.remove('hidden');
+            document.getElementById('password').value = '';
+            document.getElementById('auth-error').classList.remove('visible');
         });
 
         // API
@@ -540,15 +601,6 @@
         document.getElementById('next-month').addEventListener('click', () => {
             currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
             loadData();
-        });
-
-        document.getElementById('reset-token').addEventListener('click', () => {
-            localStorage.removeItem('ynab_token');
-            API_TOKEN = prompt('Enter YNAB API Token:');
-            if (API_TOKEN) {
-                localStorage.setItem('ynab_token', API_TOKEN);
-                loadData();
-            }
         });
 
         checkAuth();
