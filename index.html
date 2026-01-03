@@ -411,22 +411,27 @@
                     if (spendingMap[targetName] !== undefined) {
                         return spendingMap[targetName];
                     }
-                    // Then try case-insensitive contains match (handles emojis, prefixes, etc.)
+                    // Get root word for matching (e.g., "groceries" -> "grocer")
                     const lowerTarget = targetName.toLowerCase();
+                    const rootTarget = lowerTarget.replace(/(s|ies|ing|ed)$/, '');
+
                     for (const [name, amount] of Object.entries(spendingMap)) {
                         const lowerName = name.toLowerCase();
-                        // Check if target is in name or name ends with target (for emoji prefixes)
+                        // Strip all non-letter characters for comparison
+                        const strippedName = name.replace(/[^a-zA-Z\s]/gu, '').trim().toLowerCase();
+                        const rootName = strippedName.replace(/(s|ies|ing|ed)$/, '');
+
+                        // Check various matching strategies
                         if (lowerName.includes(lowerTarget) ||
-                            lowerName.endsWith(lowerTarget) ||
-                            lowerTarget.includes(lowerName)) {
-                            return amount;
-                        }
-                        // Also try stripping emojis and special chars
-                        const stripped = name.replace(/[^\w\s]/g, '').trim().toLowerCase();
-                        if (stripped.includes(lowerTarget) || lowerTarget.includes(stripped)) {
+                            strippedName.includes(lowerTarget) ||
+                            strippedName === lowerTarget ||
+                            rootName.includes(rootTarget) ||
+                            rootTarget.includes(rootName)) {
+                            console.log(`Matched "${targetName}" to "${name}" (amount: ${amount})`);
                             return amount;
                         }
                     }
+                    console.log(`No match found for "${targetName}". Available:`, Object.keys(spendingMap));
                     return 0;
                 }
 
