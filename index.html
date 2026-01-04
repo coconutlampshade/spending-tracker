@@ -479,9 +479,9 @@
         let CONFIG = null;
         let categoryMap = {}; // Maps category name to ID
 
-        // Rollover categories - leftover budget carries to next month (starting Jan 2026)
+        // Rollover categories - leftover budget carries to next month (starting Feb 2026)
         const ROLLOVER_CATEGORIES = ['Gifts', 'Clothing'];
-        const ROLLOVER_START = new Date(2025, 11, 1); // December 2025 is first month that affects Jan 2026
+        const ROLLOVER_START = new Date(2026, 0, 1); // January 2026 is first month that affects Feb 2026
 
         // Crypto
         function hexToBytes(hex) {
@@ -646,8 +646,8 @@
         async function calculateRollovers(viewingDate) {
             const rollovers = {};
 
-            // Only calculate if viewing January 2026 or later
-            if (viewingDate < new Date(2026, 0, 1)) {
+            // Only calculate if viewing February 2026 or later
+            if (viewingDate < new Date(2026, 1, 1)) {
                 return rollovers;
             }
 
