@@ -479,6 +479,10 @@
         let CONFIG = null;
         let categoryMap = {}; // Maps category name to ID
 
+        // Rollover categories - leftover budget carries to next month (starting Jan 2026)
+        const ROLLOVER_CATEGORIES = ['Gifts', 'Clothing'];
+        const ROLLOVER_START = new Date(2025, 11, 1); // December 2025 is first month that affects Jan 2026
+
         // Crypto
         function hexToBytes(hex) {
             const bytes = new Uint8Array(hex.length / 2);
@@ -638,6 +642,49 @@
             return { total: total / 1000, travelId, vacationId };
         }
 
+        // Calculate rollover: cumulative (budget - spent) from Dec 2025 through previous month
+        async function calculateRollovers(viewingDate) {
+            const rollovers = {};
+
+            // Only calculate if viewing January 2026 or later
+            if (viewingDate < new Date(2026, 0, 1)) {
+                return rollovers;
+            }
+
+            // Fetch all months from Dec 2025 to the month before viewingDate
+            const monthsToFetch = [];
+            let date = new Date(ROLLOVER_START);
+            while (date < viewingDate) {
+                monthsToFetch.push(new Date(date));
+                date = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+            }
+
+            // Fetch all months in parallel
+            const monthData = await Promise.all(
+                monthsToFetch.map(d => getCategories(d).then(cats => ({ date: d, categories: cats })))
+            );
+
+            // Calculate rollover for each rollover category
+            for (const categoryName of ROLLOVER_CATEGORIES) {
+                const cfg = CONFIG.categories[categoryName];
+                if (!cfg) continue;
+
+                let rollover = 0;
+                for (const { categories } of monthData) {
+                    let spent = 0;
+                    for (const c of categories) {
+                        if (cfg.aliases.includes(c.name)) {
+                            spent += Math.abs(c.activity) / 1000;
+                        }
+                    }
+                    rollover += cfg.budget - spent;
+                }
+                rollovers[categoryName] = rollover;
+            }
+
+            return rollovers;
+        }
+
         // Views
         function showMainView() {
             document.getElementById('main-view').style.display = 'block';
@@ -650,11 +697,18 @@
         }
 
         // Render
-        function renderCategory(name, spent, budget, period = 'month', categoryIds = []) {
+        function renderCategory(name, spent, budget, period = 'month', categoryIds = [], rollover = 0) {
             const pct = Math.min((spent / budget) * 100, 100);
             const remaining = budget - spent;
             const isOver = remaining < 0;
             const idsAttr = categoryIds.length ? `data-category-ids="${categoryIds.join(',')}"` : '';
+
+            // Show rollover info if there is one
+            let budgetText = formatCurrency(budget) + ' / ' + period;
+            if (rollover !== 0) {
+                const sign = rollover > 0 ? '+' : '';
+                budgetText = formatCurrency(budget) + ` (${sign}${formatCurrency(rollover)} rollover)`;
+            }
 
             return `
                 <div class="category" data-name="${name}" ${idsAttr}>
@@ -666,7 +720,7 @@
                         <div class="category-fill ${isOver ? 'over' : ''}" style="width: ${pct}%"></div>
                     </div>
                     <div class="category-meta">
-                        <span>${formatCurrency(budget)} / ${period}</span>
+                        <span>${budgetText}</span>
                         <span class="${isOver ? 'over' : ''}">${isOver ? formatCurrency(Math.abs(remaining)) + ' over' : formatCurrency(remaining) + ' left'}</span>
                     </div>
                 </div>
@@ -710,7 +764,13 @@
             showMainView();
 
             try {
-                const categories = await getCategories(currentDate);
+                // Fetch current month data and rollovers in parallel
+                const [categories, rollovers, yearly] = await Promise.all([
+                    getCategories(currentDate),
+                    calculateRollovers(currentDate),
+                    getYearlySpending(currentDate.getFullYear())
+                ]);
+
                 const spending = {};
                 categoryMap = {};
 
@@ -737,12 +797,13 @@
                     return ids;
                 };
 
-                const yearly = await getYearlySpending(currentDate.getFullYear());
-
                 let html = '<section class="section"><div class="section-title">Monthly</div>';
                 for (const [name, cfg] of Object.entries(CONFIG.categories)) {
                     const ids = findIds(cfg.aliases);
-                    html += renderCategory(name, find(cfg.aliases), cfg.budget, 'month', ids);
+                    // Apply rollover to adjusted budget if this is a rollover category
+                    const rollover = rollovers[name] || 0;
+                    const adjustedBudget = cfg.budget + rollover;
+                    html += renderCategory(name, find(cfg.aliases), adjustedBudget, 'month', ids, rollover);
                 }
                 html += '</section>';
 
