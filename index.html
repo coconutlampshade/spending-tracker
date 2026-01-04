@@ -25,7 +25,6 @@
             line-height: 1.4;
         }
 
-        /* Auth */
         .auth {
             min-height: 100vh;
             display: flex;
@@ -95,7 +94,6 @@
 
         .auth-error.visible { display: block; }
 
-        /* App */
         .app {
             display: none;
             max-width: 540px;
@@ -105,7 +103,6 @@
 
         .app.visible { display: block; }
 
-        /* Header */
         .header {
             display: flex;
             align-items: baseline;
@@ -136,7 +133,6 @@
             color: #666;
         }
 
-        /* Navigation */
         .nav {
             display: flex;
             align-items: center;
@@ -181,7 +177,6 @@
             margin-top: 4px;
         }
 
-        /* Section */
         .section {
             margin-bottom: 48px;
         }
@@ -195,7 +190,6 @@
             margin-bottom: 16px;
         }
 
-        /* Category */
         .category {
             padding: 20px 0;
             border-top: 1px solid #e5e5e5;
@@ -250,7 +244,6 @@
             color: #c00;
         }
 
-        /* Loading */
         .loading {
             padding: 64px 0;
             text-align: center;
@@ -258,7 +251,6 @@
             color: #888;
         }
 
-        /* Error */
         .error {
             padding: 24px;
             background: #fff5f5;
@@ -291,7 +283,6 @@
             border-color: #999;
         }
 
-        /* Responsive */
         @media (min-width: 600px) {
             .app {
                 padding: 64px 32px;
@@ -354,48 +345,17 @@
     </div>
 
     <script>
-        // Encrypted API token (encrypted with password)
-        // Salt and IV are prepended to ciphertext, all base64 encoded
+        // Encrypted data (AES-256-GCM, key derived via PBKDF2 from password)
         const ENCRYPTED_TOKEN = 'eyJzYWx0IjoiYjZjMjdlNGZjNWE2OTJmZiIsIml2IjoiYjgwYzk1YjViN2RhZTIyZCIsImRhdGEiOiJlNGRjZjY3MTJmYTVmYzdkZjJjMWY4ZjYwNDhmOGM0NGExMGFjNWM4MmViYzk1MWVhOGVhMjI0OTU2YmExODE2ZTU1N2M1MDM0YmRmNmVhYjBiZmFlNTU0NGZjNjE5MWEyZDQxYjM5MGFlNWUyNmNiM2ZmY2VmIn0=';
+        const ENCRYPTED_CONFIG = 'eyJzYWx0IjoiZDQ3NTZhODMyMjBkMTQxZCIsIml2IjoiMjQ2MzJkYjA5MmZlYjkxOCIsImRhdGEiOiJiZGU4NTg0OGI1YWRlZWVmNWNhNGI3MmFiNDFmNTNiMmRlNDE4NzFlZGY3NWVjMmQ1ZDhiZDQzMzZiZDI4ODdmMmFkZTIzMjIzMDY2ZTY0YmUwM2NjNWJiMDEwY2EwYzBmNjZjZDIxYzY3NTJiMTBmOGFiMDZmYjgwNGFjZTEwZDc1Yzg5ZTU5YTk1MjlkZjRjNzA0MzA2Nzg1NWM0NjJkZDUxMWEyNDAzNDkzYmEzOTJkZGFhMWMyMGFjMGY3YWFkMmRhMmMwNjc5Zjg2ODMwM2I0MmUyMDZiZjE2MDM1OTUyYTllM2YwZjdiNzVmMDkwYzEyYmU4ZWUwMWEzNmM5NGI1NDBmOWI2ZDZjZTllZWI2OWI0NWU1ZmI3NGE1MzJjNmI4YWU4MDA1MTcyYTY2Nzc0OTllMjE3NmEyN2ZiY2E1OWI3N2E5NGQzMGExZjliODM0ZDQ2ZjdkYTUyOTcwNzVlMGZlZTcxYzI1YTlmNzQzNDNhMTJhNzMxZGQ3ZTBjYjZjOTQ0MzYyN2UzMWVhMzM0ZDk5ZDU2N2JlMzFmMWNhZTRjOGI0ZTk2NjIzNWQ5NDVhZTg3NTI3NDgwOWJiNGExYmE0YWJlMWQ2NDUzZTFkNzBiMjkyZmM3ZWM4Y2JiZjQ1YzYzNmMyZTE1YzFhMjgxODA0NzBlOTNiYmIyMDMwODk3YzE4MmMwM2NjMGFjYWQ3NGNlMDA5ODEzYjdmZmIxM2E0MGI2ODYzZmVhNmNlYzA4OThhYTIxYjEyMmJlZmQ1NGFjNjliM2UxNzQ0YjBiZWIyMGFkNGMxMTZlOTVlNDJkYTBhMjhlMzFjNTY5NDA0NjY3OTE1ZWFlYTQ4MGQ3ODJlZjIwNDc1NDA4YmZkZjVkNmYyYmQzMDkyMmQ5MWFiZjI5MzNmMGMwYWI3OGQ3YjY4NDdkZWRkZjU2MWQwOWIwZmQ4YTExMzk0MDI4ZDRmMThmZjc4MmFkMWI3YzAyYmNjMTI3NTQwYmQ0ZWVhNTQ1YjgzYjQ3NGEwOTQ3MWIxMWNkMjM4YmY2Njk1YzdhMmI3MWIwYzI2NTMzYyJ9';
 
         const API_BASE = 'https://api.ynab.com/v1';
 
-        const CATEGORIES = {
-            'Dining Out': { budget: 1200, aliases: ['Dining Out'] },
-            'Gifts': { budget: 500, aliases: ['Gifts', '🎁 Gifts'] },
-            'Groceries': { budget: 1200, aliases: ['Groceries', '🍎 Groceries'] },
-            'Clothing': { budget: 600, aliases: ['Clothing'] },
-            'Fun Money': { budget: 110, aliases: ['Fun Money'] },
-            'Household': { budget: 750, aliases: ['Household', '🏠 Household'] }
-        };
-
         let currentDate = new Date();
         let API_TOKEN = null;
+        let CONFIG = null;
 
-        // Crypto utilities
-        async function deriveKey(password, salt) {
-            const encoder = new TextEncoder();
-            const keyMaterial = await crypto.subtle.importKey(
-                'raw',
-                encoder.encode(password),
-                'PBKDF2',
-                false,
-                ['deriveKey']
-            );
-            return crypto.subtle.deriveKey(
-                {
-                    name: 'PBKDF2',
-                    salt: hexToBytes(salt),
-                    iterations: 100000,
-                    hash: 'SHA-256'
-                },
-                keyMaterial,
-                { name: 'AES-GCM', length: 256 },
-                false,
-                ['decrypt']
-            );
-        }
-
+        // Crypto
         function hexToBytes(hex) {
             const bytes = new Uint8Array(hex.length / 2);
             for (let i = 0; i < hex.length; i += 2) {
@@ -404,9 +364,26 @@
             return bytes;
         }
 
-        async function decryptToken(password) {
+        async function deriveKey(password, salt) {
+            const keyMaterial = await crypto.subtle.importKey(
+                'raw',
+                new TextEncoder().encode(password),
+                'PBKDF2',
+                false,
+                ['deriveKey']
+            );
+            return crypto.subtle.deriveKey(
+                { name: 'PBKDF2', salt: hexToBytes(salt), iterations: 100000, hash: 'SHA-256' },
+                keyMaterial,
+                { name: 'AES-GCM', length: 256 },
+                false,
+                ['decrypt']
+            );
+        }
+
+        async function decrypt(encrypted, password) {
             try {
-                const { salt, iv, data } = JSON.parse(atob(ENCRYPTED_TOKEN));
+                const { salt, iv, data } = JSON.parse(atob(encrypted));
                 const key = await deriveKey(password, salt);
                 const decrypted = await crypto.subtle.decrypt(
                     { name: 'AES-GCM', iv: hexToBytes(iv) },
@@ -431,9 +408,11 @@
 
         // Auth
         async function checkAuth() {
-            const stored = sessionStorage.getItem('spending_token');
-            if (stored) {
-                API_TOKEN = stored;
+            const token = sessionStorage.getItem('spending_token');
+            const config = sessionStorage.getItem('spending_config');
+            if (token && config) {
+                API_TOKEN = token;
+                CONFIG = JSON.parse(config);
                 showApp();
             }
         }
@@ -446,11 +425,14 @@
 
         document.getElementById('auth-submit').addEventListener('click', async () => {
             const pw = document.getElementById('password').value;
-            const token = await decryptToken(pw);
+            const token = await decrypt(ENCRYPTED_TOKEN, pw);
+            const configStr = await decrypt(ENCRYPTED_CONFIG, pw);
 
-            if (token) {
+            if (token && configStr) {
                 API_TOKEN = token;
+                CONFIG = JSON.parse(configStr);
                 sessionStorage.setItem('spending_token', token);
+                sessionStorage.setItem('spending_config', configStr);
                 showApp();
             } else {
                 document.getElementById('auth-error').classList.add('visible');
@@ -463,8 +445,9 @@
         });
 
         document.getElementById('logout').addEventListener('click', () => {
-            sessionStorage.removeItem('spending_token');
+            sessionStorage.clear();
             API_TOKEN = null;
+            CONFIG = null;
             document.getElementById('app').classList.remove('visible');
             document.getElementById('auth').classList.remove('hidden');
             document.getElementById('password').value = '';
@@ -571,13 +554,13 @@
                 const yearly = await getYearlySpending(currentDate.getFullYear());
 
                 let html = '<section class="section"><div class="section-title">Monthly</div>';
-                for (const [name, cfg] of Object.entries(CATEGORIES)) {
+                for (const [name, cfg] of Object.entries(CONFIG.categories)) {
                     html += renderCategory(name, find(cfg.aliases), cfg.budget);
                 }
                 html += '</section>';
 
                 html += '<section class="section"><div class="section-title">Yearly</div>';
-                html += renderCategory('Travel + Vacation', yearly, 24000, 'year');
+                html += renderCategory('Travel + Vacation', yearly, CONFIG.yearlyBudget, 'year');
                 html += '</section>';
 
                 content.innerHTML = html;
@@ -585,14 +568,13 @@
                 content.innerHTML = `
                     <div class="error">
                         <div class="error-title">Unable to load</div>
-                        <div class="error-message">${err.message === '401' ? 'Invalid API token' : 'Check connection'}</div>
+                        <div class="error-message">${err.message === '401' ? 'Invalid token' : 'Check connection'}</div>
                         <button class="error-btn" onclick="loadData()">Retry</button>
                     </div>
                 `;
             }
         }
 
-        // Events
         document.getElementById('prev-month').addEventListener('click', () => {
             currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
             loadData();
