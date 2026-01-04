@@ -193,6 +193,13 @@
         .category {
             padding: 20px 0;
             border-top: 1px solid #e5e5e5;
+            cursor: pointer;
+        }
+
+        .category:hover {
+            background: #f5f5f5;
+            margin: 0 -12px;
+            padding: 20px 12px;
         }
 
         .category:last-child {
@@ -242,6 +249,96 @@
 
         .category-meta .over {
             color: #c00;
+        }
+
+        /* Detail View */
+        .detail {
+            display: none;
+        }
+
+        .detail.visible {
+            display: block;
+        }
+
+        .detail-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 32px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #e5e5e5;
+        }
+
+        .back-btn {
+            width: 36px;
+            height: 36px;
+            background: none;
+            border: 1px solid #ddd;
+            color: #1a1a1a;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .back-btn:hover {
+            border-color: #1a1a1a;
+        }
+
+        .detail-title {
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        .detail-subtitle {
+            font-size: 13px;
+            color: #888;
+            margin-top: 2px;
+        }
+
+        .transaction {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 16px 0;
+            border-bottom: 1px solid #e5e5e5;
+        }
+
+        .transaction:first-child {
+            border-top: 1px solid #e5e5e5;
+        }
+
+        .transaction-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .transaction-payee {
+            font-size: 15px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .transaction-date {
+            font-size: 12px;
+            color: #888;
+            margin-top: 2px;
+        }
+
+        .transaction-amount {
+            font-size: 15px;
+            font-variant-numeric: tabular-nums;
+            margin-left: 16px;
+            flex-shrink: 0;
+        }
+
+        .no-transactions {
+            padding: 48px 0;
+            text-align: center;
+            color: #888;
+            font-size: 14px;
         }
 
         .loading {
@@ -296,11 +393,18 @@
                 padding: 24px 0;
             }
 
-            .category-name {
+            .category:hover {
+                padding: 24px 16px;
+                margin: 0 -16px;
+            }
+
+            .category-name,
+            .category-amount {
                 font-size: 16px;
             }
 
-            .category-amount {
+            .transaction-payee,
+            .transaction-amount {
                 font-size: 16px;
             }
         }
@@ -322,30 +426,49 @@
             <button class="logout-btn" id="logout">Log out</button>
         </header>
 
-        <nav class="nav">
-            <button class="nav-btn" id="prev-month" aria-label="Previous">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M10 12L6 8L10 4"/>
-                </svg>
-            </button>
-            <div class="nav-month">
-                <div class="month-name" id="month-name">December</div>
-                <div class="month-year" id="month-year">2025</div>
-            </div>
-            <button class="nav-btn" id="next-month" aria-label="Next">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M6 4L10 8L6 12"/>
-                </svg>
-            </button>
-        </nav>
+        <!-- Main View -->
+        <div id="main-view">
+            <nav class="nav">
+                <button class="nav-btn" id="prev-month" aria-label="Previous">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M10 12L6 8L10 4"/>
+                    </svg>
+                </button>
+                <div class="nav-month">
+                    <div class="month-name" id="month-name">December</div>
+                    <div class="month-year" id="month-year">2025</div>
+                </div>
+                <button class="nav-btn" id="next-month" aria-label="Next">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M6 4L10 8L6 12"/>
+                    </svg>
+                </button>
+            </nav>
+            <main id="content">
+                <div class="loading">Loading...</div>
+            </main>
+        </div>
 
-        <main id="content">
-            <div class="loading">Loading...</div>
-        </main>
+        <!-- Detail View -->
+        <div id="detail-view" class="detail">
+            <div class="detail-header">
+                <button class="back-btn" id="back-btn" aria-label="Back">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M10 12L6 8L10 4"/>
+                    </svg>
+                </button>
+                <div>
+                    <div class="detail-title" id="detail-title">Category</div>
+                    <div class="detail-subtitle" id="detail-subtitle">December 2025</div>
+                </div>
+            </div>
+            <div id="detail-content">
+                <div class="loading">Loading...</div>
+            </div>
+        </div>
     </div>
 
     <script>
-        // Encrypted data (AES-256-GCM, key derived via PBKDF2 from password)
         const ENCRYPTED_TOKEN = 'eyJzYWx0IjoiYjZjMjdlNGZjNWE2OTJmZiIsIml2IjoiYjgwYzk1YjViN2RhZTIyZCIsImRhdGEiOiJlNGRjZjY3MTJmYTVmYzdkZjJjMWY4ZjYwNDhmOGM0NGExMGFjNWM4MmViYzk1MWVhOGVhMjI0OTU2YmExODE2ZTU1N2M1MDM0YmRmNmVhYjBiZmFlNTU0NGZjNjE5MWEyZDQxYjM5MGFlNWUyNmNiM2ZmY2VmIn0=';
         const ENCRYPTED_CONFIG = 'eyJzYWx0IjoiZDQ3NTZhODMyMjBkMTQxZCIsIml2IjoiMjQ2MzJkYjA5MmZlYjkxOCIsImRhdGEiOiJiZGU4NTg0OGI1YWRlZWVmNWNhNGI3MmFiNDFmNTNiMmRlNDE4NzFlZGY3NWVjMmQ1ZDhiZDQzMzZiZDI4ODdmMmFkZTIzMjIzMDY2ZTY0YmUwM2NjNWJiMDEwY2EwYzBmNjZjZDIxYzY3NTJiMTBmOGFiMDZmYjgwNGFjZTEwZDc1Yzg5ZTU5YTk1MjlkZjRjNzA0MzA2Nzg1NWM0NjJkZDUxMWEyNDAzNDkzYmEzOTJkZGFhMWMyMGFjMGY3YWFkMmRhMmMwNjc5Zjg2ODMwM2I0MmUyMDZiZjE2MDM1OTUyYTllM2YwZjdiNzVmMDkwYzEyYmU4ZWUwMWEzNmM5NGI1NDBmOWI2ZDZjZTllZWI2OWI0NWU1ZmI3NGE1MzJjNmI4YWU4MDA1MTcyYTY2Nzc0OTllMjE3NmEyN2ZiY2E1OWI3N2E5NGQzMGExZjliODM0ZDQ2ZjdkYTUyOTcwNzVlMGZlZTcxYzI1YTlmNzQzNDNhMTJhNzMxZGQ3ZTBjYjZjOTQ0MzYyN2UzMWVhMzM0ZDk5ZDU2N2JlMzFmMWNhZTRjOGI0ZTk2NjIzNWQ5NDVhZTg3NTI3NDgwOWJiNGExYmE0YWJlMWQ2NDUzZTFkNzBiMjkyZmM3ZWM4Y2JiZjQ1YzYzNmMyZTE1YzFhMjgxODA0NzBlOTNiYmIyMDMwODk3YzE4MmMwM2NjMGFjYWQ3NGNlMDA5ODEzYjdmZmIxM2E0MGI2ODYzZmVhNmNlYzA4OThhYTIxYjEyMmJlZmQ1NGFjNjliM2UxNzQ0YjBiZWIyMGFkNGMxMTZlOTVlNDJkYTBhMjhlMzFjNTY5NDA0NjY3OTE1ZWFlYTQ4MGQ3ODJlZjIwNDc1NDA4YmZkZjVkNmYyYmQzMDkyMmQ5MWFiZjI5MzNmMGMwYWI3OGQ3YjY4NDdkZWRkZjU2MWQwOWIwZmQ4YTExMzk0MDI4ZDRmMThmZjc4MmFkMWI3YzAyYmNjMTI3NTQwYmQ0ZWVhNTQ1YjgzYjQ3NGEwOTQ3MWIxMWNkMjM4YmY2Njk1YzdhMmI3MWIwYzI2NTMzYyJ9';
 
@@ -354,6 +477,7 @@
         let currentDate = new Date();
         let API_TOKEN = null;
         let CONFIG = null;
+        let categoryMap = {}; // Maps category name to ID
 
         // Crypto
         function hexToBytes(hex) {
@@ -401,6 +525,10 @@
         const formatMonth = (d) => d.toLocaleDateString('en-US', { month: 'long' });
         const formatYear = (d) => d.getFullYear().toString();
         const formatAPI = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`;
+        const formatDate = (dateStr) => {
+            const d = new Date(dateStr + 'T00:00:00');
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        };
         const isCurrentMonth = (d) => {
             const now = new Date();
             return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
@@ -469,6 +597,26 @@
             return data.data.month.categories;
         }
 
+        async function getTransactions(categoryIds, date) {
+            const year = date.getFullYear();
+            const month = date.getMonth();
+            const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+            const endDate = new Date(year, month + 1, 0);
+            const endDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
+
+            const data = await apiFetch(`/budgets/last-used/transactions?since_date=${startDate}`);
+
+            return data.data.transactions
+                .filter(t => {
+                    const tDate = new Date(t.date);
+                    return categoryIds.includes(t.category_id) &&
+                           tDate.getMonth() === month &&
+                           tDate.getFullYear() === year &&
+                           t.amount < 0;
+                })
+                .sort((a, b) => new Date(b.date) - new Date(a.date));
+        }
+
         async function getYearlySpending(year) {
             const cats = await apiFetch('/budgets/last-used/categories');
             const txns = await apiFetch(`/budgets/last-used/transactions?since_date=${year}-01-01`);
@@ -487,17 +635,29 @@
                     total += Math.abs(t.amount);
                 }
             }
-            return total / 1000;
+            return { total: total / 1000, travelId, vacationId };
+        }
+
+        // Views
+        function showMainView() {
+            document.getElementById('main-view').style.display = 'block';
+            document.getElementById('detail-view').classList.remove('visible');
+        }
+
+        function showDetailView() {
+            document.getElementById('main-view').style.display = 'none';
+            document.getElementById('detail-view').classList.add('visible');
         }
 
         // Render
-        function renderCategory(name, spent, budget, period = 'month') {
+        function renderCategory(name, spent, budget, period = 'month', categoryIds = []) {
             const pct = Math.min((spent / budget) * 100, 100);
             const remaining = budget - spent;
             const isOver = remaining < 0;
+            const idsAttr = categoryIds.length ? `data-category-ids="${categoryIds.join(',')}"` : '';
 
             return `
-                <div class="category">
+                <div class="category" data-name="${name}" ${idsAttr}>
                     <div class="category-header">
                         <span class="category-name">${name}</span>
                         <span class="category-amount">${formatCurrency(spent)}</span>
@@ -509,6 +669,20 @@
                         <span>${formatCurrency(budget)} / ${period}</span>
                         <span class="${isOver ? 'over' : ''}">${isOver ? formatCurrency(Math.abs(remaining)) + ' over' : formatCurrency(remaining) + ' left'}</span>
                     </div>
+                </div>
+            `;
+        }
+
+        function renderTransaction(t) {
+            const amount = Math.abs(t.amount) / 1000;
+            const payee = t.payee_name || 'Unknown';
+            return `
+                <div class="transaction">
+                    <div class="transaction-info">
+                        <div class="transaction-payee">${payee}</div>
+                        <div class="transaction-date">${formatDate(t.date)}</div>
+                    </div>
+                    <div class="transaction-amount">${formatCurrency(amount)}</div>
                 </div>
             `;
         }
@@ -533,12 +707,16 @@
             const content = document.getElementById('content');
             content.innerHTML = '<div class="loading">Loading...</div>';
             updateNav();
+            showMainView();
 
             try {
                 const categories = await getCategories(currentDate);
                 const spending = {};
+                categoryMap = {};
+
                 for (const c of categories) {
                     spending[c.name] = Math.abs(c.activity) / 1000;
+                    categoryMap[c.name] = c.id;
                 }
 
                 const find = (aliases) => {
@@ -551,19 +729,35 @@
                     return 0;
                 };
 
+                const findIds = (aliases) => {
+                    const ids = [];
+                    for (const a of aliases) {
+                        if (categoryMap[a]) ids.push(categoryMap[a]);
+                    }
+                    return ids;
+                };
+
                 const yearly = await getYearlySpending(currentDate.getFullYear());
 
                 let html = '<section class="section"><div class="section-title">Monthly</div>';
                 for (const [name, cfg] of Object.entries(CONFIG.categories)) {
-                    html += renderCategory(name, find(cfg.aliases), cfg.budget);
+                    const ids = findIds(cfg.aliases);
+                    html += renderCategory(name, find(cfg.aliases), cfg.budget, 'month', ids);
                 }
                 html += '</section>';
 
                 html += '<section class="section"><div class="section-title">Yearly</div>';
-                html += renderCategory('Travel + Vacation', yearly, CONFIG.yearlyBudget, 'year');
+                const yearlyIds = [yearly.travelId, yearly.vacationId].filter(Boolean);
+                html += renderCategory('Travel + Vacation', yearly.total, CONFIG.yearlyBudget, 'year', yearlyIds);
                 html += '</section>';
 
                 content.innerHTML = html;
+
+                // Add click handlers
+                document.querySelectorAll('.category').forEach(el => {
+                    el.addEventListener('click', () => showCategoryDetail(el));
+                });
+
             } catch (err) {
                 content.innerHTML = `
                     <div class="error">
@@ -575,6 +769,39 @@
             }
         }
 
+        async function showCategoryDetail(el) {
+            const name = el.dataset.name;
+            const idsStr = el.dataset.categoryIds;
+            if (!idsStr) return;
+
+            const ids = idsStr.split(',');
+            const detailContent = document.getElementById('detail-content');
+
+            document.getElementById('detail-title').textContent = name;
+            document.getElementById('detail-subtitle').textContent = `${formatMonth(currentDate)} ${formatYear(currentDate)}`;
+            detailContent.innerHTML = '<div class="loading">Loading...</div>';
+
+            showDetailView();
+
+            try {
+                const transactions = await getTransactions(ids, currentDate);
+
+                if (transactions.length === 0) {
+                    detailContent.innerHTML = '<div class="no-transactions">No transactions this month</div>';
+                } else {
+                    detailContent.innerHTML = transactions.map(renderTransaction).join('');
+                }
+            } catch (err) {
+                detailContent.innerHTML = `
+                    <div class="error">
+                        <div class="error-title">Unable to load</div>
+                        <div class="error-message">Check connection</div>
+                    </div>
+                `;
+            }
+        }
+
+        // Events
         document.getElementById('prev-month').addEventListener('click', () => {
             currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
             loadData();
@@ -584,6 +811,8 @@
             currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
             loadData();
         });
+
+        document.getElementById('back-btn').addEventListener('click', showMainView);
 
         checkAuth();
     </script>
