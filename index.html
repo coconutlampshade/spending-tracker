@@ -327,6 +327,13 @@
             margin-top: 2px;
         }
 
+        .transaction-memo {
+            font-size: 12px;
+            color: #888;
+            margin-top: 4px;
+            font-style: italic;
+        }
+
         .transaction-amount {
             font-size: 15px;
             font-variant-numeric: tabular-nums;
@@ -743,11 +750,13 @@
         function renderTransaction(t) {
             const amount = Math.abs(t.amount) / 1000;
             const payee = t.payee_name || 'Unknown';
+            const memo = t.memo ? `<div class="transaction-memo">${t.memo}</div>` : '';
             return `
                 <div class="transaction">
                     <div class="transaction-info">
                         <div class="transaction-payee">${payee}</div>
                         <div class="transaction-date">${formatDate(t.date)}</div>
+                        ${memo}
                     </div>
                     <div class="transaction-amount">${formatCurrency(amount)}</div>
                 </div>
