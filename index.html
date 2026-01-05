@@ -605,28 +605,33 @@
             const year = date.getFullYear();
             const month = date.getMonth();
             const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`;
-            const lastDay = new Date(year, month + 1, 0).getDate();
-            const endDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 
-            // Fetch transactions for each category to ensure we get all of them
-            const allTransactions = [];
-            for (const categoryId of categoryIds) {
-                try {
-                    const data = await apiFetch(`/budgets/last-used/categories/${categoryId}/transactions?since_date=${startDate}`);
-                    if (data.data && data.data.transactions) {
-                        allTransactions.push(...data.data.transactions);
+            // Fetch all transactions since start of month
+            const data = await apiFetch(`/budgets/last-used/transactions?since_date=${startDate}`);
+            const results = [];
+
+            for (const t of data.data.transactions) {
+                const [tYear, tMonth] = t.date.split('-').map(Number);
+                if (tMonth !== month + 1 || tYear !== year) continue;
+
+                // Handle split transactions
+                if (t.subtransactions && t.subtransactions.length > 0) {
+                    for (const sub of t.subtransactions) {
+                        if (categoryIds.includes(sub.category_id) && sub.amount < 0) {
+                            results.push({
+                                date: t.date,
+                                payee_name: t.payee_name,
+                                memo: sub.memo || t.memo,
+                                amount: sub.amount
+                            });
+                        }
                     }
-                } catch (e) {
-                    console.log('Error fetching category transactions:', e);
+                } else if (categoryIds.includes(t.category_id) && t.amount < 0) {
+                    results.push(t);
                 }
             }
 
-            return allTransactions
-                .filter(t => {
-                    const [tYear, tMonth] = t.date.split('-').map(Number);
-                    return tMonth === month + 1 && tYear === year && t.amount < 0;
-                })
-                .sort((a, b) => new Date(b.date) - new Date(a.date));
+            return results.sort((a, b) => new Date(b.date) - new Date(a.date));
         }
 
         async function getYearlySpending(year) {
