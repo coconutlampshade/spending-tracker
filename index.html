@@ -605,18 +605,26 @@
             const year = date.getFullYear();
             const month = date.getMonth();
             const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`;
-            const endDate = new Date(year, month + 1, 0);
-            const endDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
+            const lastDay = new Date(year, month + 1, 0).getDate();
+            const endDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 
-            const data = await apiFetch(`/budgets/last-used/transactions?since_date=${startDate}`);
+            // Fetch transactions for each category to ensure we get all of them
+            const allTransactions = [];
+            for (const categoryId of categoryIds) {
+                try {
+                    const data = await apiFetch(`/budgets/last-used/categories/${categoryId}/transactions?since_date=${startDate}`);
+                    if (data.data && data.data.transactions) {
+                        allTransactions.push(...data.data.transactions);
+                    }
+                } catch (e) {
+                    console.log('Error fetching category transactions:', e);
+                }
+            }
 
-            return data.data.transactions
+            return allTransactions
                 .filter(t => {
-                    const tDate = new Date(t.date);
-                    return categoryIds.includes(t.category_id) &&
-                           tDate.getMonth() === month &&
-                           tDate.getFullYear() === year &&
-                           t.amount < 0;
+                    const [tYear, tMonth] = t.date.split('-').map(Number);
+                    return tMonth === month + 1 && tYear === year && t.amount < 0;
                 })
                 .sort((a, b) => new Date(b.date) - new Date(a.date));
         }
@@ -850,7 +858,13 @@
                 if (transactions.length === 0) {
                     detailContent.innerHTML = '<div class="no-transactions">No transactions this month</div>';
                 } else {
-                    detailContent.innerHTML = transactions.map(renderTransaction).join('');
+                    const total = transactions.reduce((sum, t) => sum + Math.abs(t.amount) / 1000, 0);
+                    detailContent.innerHTML = `
+                        <div style="margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #e5e5e5; font-size: 13px; color: #888;">
+                            ${transactions.length} transaction${transactions.length !== 1 ? 's' : ''} · ${formatCurrency(total)} total
+                        </div>
+                        ${transactions.map(renderTransaction).join('')}
+                    `;
                 }
             } catch (err) {
                 detailContent.innerHTML = `
