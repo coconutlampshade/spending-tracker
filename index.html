@@ -547,8 +547,8 @@
 
         // Auth
         async function checkAuth() {
-            const token = sessionStorage.getItem('spending_token');
-            const config = sessionStorage.getItem('spending_config');
+            const token = localStorage.getItem('spending_token');
+            const config = localStorage.getItem('spending_config');
             if (token && config) {
                 API_TOKEN = token;
                 CONFIG = JSON.parse(config);
@@ -570,8 +570,8 @@
             if (token && configStr) {
                 API_TOKEN = token;
                 CONFIG = JSON.parse(configStr);
-                sessionStorage.setItem('spending_token', token);
-                sessionStorage.setItem('spending_config', configStr);
+                localStorage.setItem('spending_token', token);
+                localStorage.setItem('spending_config', configStr);
                 showApp();
             } else {
                 document.getElementById('auth-error').classList.add('visible');
@@ -584,7 +584,8 @@
         });
 
         document.getElementById('logout').addEventListener('click', () => {
-            sessionStorage.clear();
+            localStorage.removeItem('spending_token');
+            localStorage.removeItem('spending_config');
             API_TOKEN = null;
             CONFIG = null;
             document.getElementById('app').classList.remove('visible');
