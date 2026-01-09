@@ -915,6 +915,40 @@
 
         document.getElementById('back-btn').addEventListener('click', showMainView);
 
+        // Swipe gestures
+        let touchStartX = 0;
+        let touchStartY = 0;
+
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        }, { passive: true });
+
+        document.addEventListener('touchend', (e) => {
+            const dx = e.changedTouches[0].clientX - touchStartX;
+            const dy = e.changedTouches[0].clientY - touchStartY;
+
+            // Only trigger if horizontal swipe is dominant and significant
+            if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 2) {
+                const isDetailVisible = document.getElementById('detail-view').classList.contains('visible');
+
+                if (isDetailVisible) {
+                    // Swipe right to go back from detail view
+                    if (dx > 0) showMainView();
+                } else {
+                    // Swipe to change months
+                    const prevBtn = document.getElementById('prev-month');
+                    const nextBtn = document.getElementById('next-month');
+
+                    if (dx > 0 && !prevBtn.disabled) {
+                        prevBtn.click();
+                    } else if (dx < 0 && !nextBtn.disabled) {
+                        nextBtn.click();
+                    }
+                }
+            }
+        }, { passive: true });
+
         checkAuth();
     </script>
 </body>
