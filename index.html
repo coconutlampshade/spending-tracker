@@ -636,7 +636,7 @@
                 // Handle split transactions
                 if (t.subtransactions && t.subtransactions.length > 0) {
                     for (const sub of t.subtransactions) {
-                        if (categoryIds.includes(sub.category_id) && sub.amount < 0) {
+                        if (categoryIds.includes(sub.category_id)) {
                             results.push({
                                 date: t.date,
                                 payee_name: t.payee_name,
@@ -645,7 +645,7 @@
                             });
                         }
                     }
-                } else if (categoryIds.includes(t.category_id) && t.amount < 0) {
+                } else if (categoryIds.includes(t.category_id)) {
                     results.push(t);
                 }
             }
@@ -761,8 +761,11 @@
 
         function renderTransaction(t) {
             const amount = Math.abs(t.amount) / 1000;
+            const isRefund = t.amount > 0;
             const payee = t.payee_name || 'Unknown';
             const memo = t.memo ? `<div class="transaction-memo">${t.memo}</div>` : '';
+            const amountStyle = isRefund ? 'color: #080' : '';
+            const amountText = isRefund ? `+${formatCurrency(amount)}` : formatCurrency(amount);
             return `
                 <div class="transaction">
                     <div class="transaction-info">
@@ -770,7 +773,7 @@
                         <div class="transaction-date">${formatDate(t.date)}</div>
                         ${memo}
                     </div>
-                    <div class="transaction-amount">${formatCurrency(amount)}</div>
+                    <div class="transaction-amount" style="${amountStyle}">${amountText}</div>
                 </div>
             `;
         }
@@ -884,10 +887,11 @@
                 if (transactions.length === 0) {
                     detailContent.innerHTML = '<div class="no-transactions">No transactions this month</div>';
                 } else {
-                    const total = transactions.reduce((sum, t) => sum + Math.abs(t.amount) / 1000, 0);
+                    // Net total: negative amounts are spending, positive are refunds
+                    const total = transactions.reduce((sum, t) => sum - t.amount / 1000, 0);
                     detailContent.innerHTML = `
                         <div style="margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #e5e5e5; font-size: 13px; color: #888;">
-                            ${transactions.length} transaction${transactions.length !== 1 ? 's' : ''} · ${formatCurrency(total)} total
+                            ${transactions.length} transaction${transactions.length !== 1 ? 's' : ''} · ${formatCurrency(total)} net
                         </div>
                         ${transactions.map(renderTransaction).join('')}
                     `;
