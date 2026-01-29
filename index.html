@@ -834,7 +834,25 @@
                     return ids;
                 };
 
-                let html = '<section class="section"><div class="section-title">Monthly</div>';
+                // Calculate total remaining for monthly categories
+                let totalBudget = 0;
+                let totalSpent = 0;
+                for (const [name, cfg] of Object.entries(CONFIG.categories)) {
+                    const rollover = rollovers[name] || 0;
+                    totalBudget += cfg.budget + rollover;
+                    totalSpent += find(cfg.aliases);
+                }
+                const totalRemaining = totalBudget - totalSpent;
+                const isOver = totalRemaining < 0;
+
+                let html = `
+                    <div style="text-align: center; margin-bottom: 48px;">
+                        <div style="font-size: 48px; font-weight: 300; letter-spacing: -0.02em; ${isOver ? 'color: #c00;' : ''}">${formatCurrency(Math.abs(totalRemaining))}</div>
+                        <div style="font-size: 14px; color: #888; margin-top: 4px;">${isOver ? 'over budget' : 'left this month'}</div>
+                    </div>
+                `;
+
+                html += '<section class="section"><div class="section-title">Monthly</div>';
                 for (const [name, cfg] of Object.entries(CONFIG.categories)) {
                     const ids = findIds(cfg.aliases);
                     // Apply rollover to adjusted budget if this is a rollover category
